@@ -1,0 +1,5 @@
+nose2
+mypy
+
+#comandos pip install -r requirements
+# pruebas: mypy . | nose2
