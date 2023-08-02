@@ -35,6 +35,7 @@ class TokenType(Enum):
     EQUALS = auto() # es ==
     NOTEQUALS = auto() # es !=
     FLOAT = auto() # es float
+    FOR = auto()
 
 class Token(NamedTuple):
     token_type: TokenType
@@ -55,6 +56,7 @@ def lookup_token_type(literal: str) -> TokenType:
         'si_no': TokenType.ELSE,
         'variable': TokenType.LET,
         'funcion': TokenType.FUNCTION,
+        'para': TokenType.FOR,
     }
 
     return keywords.get(literal, TokenType.IDENT)

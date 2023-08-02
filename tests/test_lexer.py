@@ -159,13 +159,10 @@ class LexerTest(TestCase):
                 retorna falso;
             }
         '''
-
         lexer: Lexer = Lexer(source)
-
         tokens: list[Token] = []
         for i in range(17):
             tokens.append(lexer.next_token())
-
         
         expected_tokens: list[Token] = [
             Token(TokenType.IF, 'si'),
@@ -186,7 +183,6 @@ class LexerTest(TestCase):
             Token(TokenType.SEMICOLON, ';'),
             Token(TokenType.RBRACE, '}'),
         ]
-
         self.assertEqual(tokens, expected_tokens)
 
     def test_two_character_operator(self) -> None:
