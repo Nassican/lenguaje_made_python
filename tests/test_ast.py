@@ -3,7 +3,10 @@ from lpp.ast import (
     Identifier,
     LetStatement,
     Program,
-    ReturnStatement
+    ReturnStatement,
+    Expression,
+    ExpressionStatement,
+    Integer,
 )
 from lpp.token import (
     Token,
@@ -49,3 +52,18 @@ class ASTTest(TestCase):
         program_str = str(program)
 
         self.assertEquals(program_str, 'retorna mi_var;')
+
+    def test_integer_expressions(self) -> None:
+        program: Program = Program(statements=[
+            ExpressionStatement(
+                token=Token(TokenType.INT, literal='5'),
+                expression=Integer(
+                    token=Token(TokenType.INT, literal='5'),
+                    value=5
+                )
+            ),
+        ])
+        
+        program_str = str(program)
+
+        self.assertEquals(program_str, '5')

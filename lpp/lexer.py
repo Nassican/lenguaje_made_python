@@ -36,17 +36,17 @@ class Lexer:
           token = Token(TokenType.SEMICOLON, self._character)
       elif match(r"^$", self._character):
           token = Token(TokenType.EOF, self._character)
-      elif match(r"<$", self._character):
+      elif match(r"^<$", self._character):
           token = Token(TokenType.LT, self._character)
-      elif match(r">$", self._character):
+      elif match(r"^>$", self._character):
           token = Token(TokenType.MT, self._character)
-      elif match(r"-$", self._character):
+      elif match(r"^-$", self._character):
           token = Token(TokenType.MINUS, self._character)
-      elif match(r"\/$", self._character):
+      elif match(r"^\/$", self._character):
           token = Token(TokenType.DIVIDE, self._character)
-      elif match(r"\*$", self._character):
+      elif match(r"^\*$", self._character):
           token = Token(TokenType.MULT, self._character)
-      elif match(r"!$", self._character):
+      elif match(r"^!$", self._character):
         if self._peek_character() == '=':
             token = self._make_two_character_token(TokenType.NOTEQUALS)
         else:

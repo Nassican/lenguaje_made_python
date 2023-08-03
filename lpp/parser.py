@@ -1,10 +1,14 @@
-from lpp.ast import (Program, 
-                     Statement, 
-                     LetStatement, 
-                     Identifier, 
-                     ReturnStatement,
-                     Expression,
-                     ExpressionStatement)
+from lpp.ast import (
+    Program, 
+    Statement, 
+    LetStatement, 
+    Identifier, 
+    ReturnStatement,
+    Expression,
+    ExpressionStatement,
+    Integer,
+    Prefix,
+    )
 from lpp.lexer import Lexer
 from lpp.token import TokenType, Token
 from typing import Optional, Callable
@@ -31,6 +35,8 @@ InfixParseFns = dict[TokenType, InfixParseFn]
             2 + 2
         El operador se encuentra entre dos elementos   
 '''
+
+# PRECEDENCES: dict[TokenType, Precedence]
 
 # El precedence de mas alto valor se evalua primero
 class Precedence(IntEnum):
@@ -105,6 +111,8 @@ class Parser:
         try:
             prefix_parse_fn = self._prefix_parse_fns[self._current_token.token_type]
         except KeyError:
+            message = f'No se encontro ninguna funcion para parsear {self._current_token.literal}'
+            self._errors.append(message)
             return None
         
         # Expresion de izquierda
@@ -176,6 +184,36 @@ class Parser:
         return Identifier(token=self._current_token,
                           value=self._current_token.literal)
     
+    def _parse_integer(self) -> Optional[Integer]:
+        assert self._current_token is not None
+
+        integer = Integer(token=self._current_token)
+        try:
+            integer.value = int(self._current_token.literal)
+        except ValueError:
+            message = f'No se ha podido parsear {self._current_token.literal}  ' + \
+                        'como entero.'
+            self._errors.append(message)
+
+            return None
+        
+        return integer
+    
+
+    # def _parse_integer(self) -> Float:
+    #        pass
+    # Identifica esto:  -5;
+    #                   !foo;
+    #                   5 + -10;
+    def _parse_prefix_expression(self) -> Prefix:
+        assert self._current_token is not None
+        prefix_expression = Prefix(token=self._current_token,
+                                   operator=self._current_token.literal)
+        self._advance_tokens()
+        prefix_expression.right = self._parse_expression(Precedence.PREFIX)
+
+        return prefix_expression
+    
 
 
 
@@ -185,6 +223,9 @@ class Parser:
     def _register_prefix_parse_fns(self) -> PrefixParseFns:
         return {
             TokenType.IDENT: self._parse_identifier,
+            TokenType.INT: self._parse_integer,
+            TokenType.MINUS: self._parse_prefix_expression,
+            TokenType.NOT: self._parse_prefix_expression,
         }
 
     
