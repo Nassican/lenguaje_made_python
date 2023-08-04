@@ -47,7 +47,7 @@ class Token(NamedTuple):
 # Funcion auxiliar dentro del token que nos permite saber si 
 # estamos dentro de un keyboard o un identificador ( nombre de la variable)
 def lookup_token_type(literal: str) -> TokenType:
-    #Diccionario, con llaves str y valores TT
+    #Diccionario, con llaves str y valores TokenType
     keywords: dict[str, TokenType] = {
         'falso': TokenType.FALSE,
         'verdadero': TokenType.TRUE,

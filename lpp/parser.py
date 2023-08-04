@@ -8,6 +8,8 @@ from lpp.ast import (
     ExpressionStatement,
     Integer,
     Prefix,
+    Infix,
+    Boolean,
     )
 from lpp.lexer import Lexer
 from lpp.token import TokenType, Token
@@ -36,7 +38,7 @@ InfixParseFns = dict[TokenType, InfixParseFn]
         El operador se encuentra entre dos elementos   
 '''
 
-# PRECEDENCES: dict[TokenType, Precedence]
+
 
 # El precedence de mas alto valor se evalua primero
 class Precedence(IntEnum):
@@ -47,6 +49,18 @@ class Precedence(IntEnum):
     PRODUCT = 5             # Primero el producto
     PREFIX = 6              # Prefijo
     CALL = 7                # Llamada a funcion
+
+PRECEDENCES: dict[TokenType, Precedence] = {
+    TokenType.EQUALS: Precedence.EQUALS,
+    TokenType.NOTEQUALS: Precedence.EQUALS,
+    TokenType.LT: Precedence.LESSGREATER,
+    TokenType.MT: Precedence.LESSGREATER,
+    TokenType.PLUS: Precedence.SUM,
+    TokenType.MINUS: Precedence.SUM,
+    TokenType.DIVIDE: Precedence.PRODUCT,
+    TokenType.MULT: Precedence.PRODUCT,
+}
+
 
 class Parser:
     def __init__(self, lexer: Lexer) -> None:
@@ -86,6 +100,14 @@ class Parser:
         self._current_token = self._peek_token
         # Avanzamos a otro token
         self._peek_token = self._lexer.next_token()
+
+    # Buscamos que precedencia tiene le token
+    def _current_precedence(self) -> Precedence:
+        assert self._current_token is not None
+        try:
+            return PRECEDENCES[self._current_token.token_type]
+        except KeyError:
+            return Precedence.LOWEST
     
     # Comienza a identificar si la sintaxis es correcta
     def _expected_token(self, token_type: TokenType) -> bool:
@@ -117,6 +139,18 @@ class Parser:
         
         # Expresion de izquierda
         left_expression = prefix_parse_fn()
+
+        assert self._peek_token is not None
+        while not self._peek_token.token_type == TokenType.SEMICOLON and precedence < self._peek_precedence():
+            try:
+                infix_parse_fn = self._infix_parse_fns[self._peek_token.token_type]
+
+                self._advance_tokens()
+
+                assert left_expression is not None
+                left_expression = infix_parse_fn(left_expression)
+            except KeyError:
+                return left_expression
 
         return left_expression
 
@@ -214,11 +248,53 @@ class Parser:
 
         return prefix_expression
     
+    def _parse_infix_expression(self, left: Expression) -> Infix:
+        assert self._current_token is not None
+        infix = Infix(token=self._current_token,
+                      operator=self._current_token.literal,
+                      left=left)
+        
+
+        # Con esto se agrupa la expresion, con la precedencia
+        precedence = self._current_precedence()
+
+        self._advance_tokens()
+
+
+        # Recursivamente evalua la expresion y si hay un infix regresa
+        # de manera recursiva
+        infix.right = self._parse_expression(precedence)
+
+        return infix
+    
+    def _peek_precedence(self) -> Precedence:
+        assert self._peek_token is not None
+        try:
+            return PRECEDENCES[self._peek_token.token_type]
+        except KeyError:
+            return Precedence.LOWEST
+        
+    def _parse_boolean(self) -> Boolean:
+        assert self._current_token is not None
+
+        return Boolean(token=self._current_token,
+                       value=self._current_token.token_type == TokenType.TRUE)
+
+    
 
 
 
     def _register_infix_parse_fns(self) -> InfixParseFns:
-        return {}
+        return {
+            TokenType.PLUS: self._parse_infix_expression,
+            TokenType.MINUS: self._parse_infix_expression,
+            TokenType.DIVIDE: self._parse_infix_expression,
+            TokenType.MULT: self._parse_infix_expression,
+            TokenType.EQUALS: self._parse_infix_expression,
+            TokenType.NOTEQUALS: self._parse_infix_expression,
+            TokenType.LT: self._parse_infix_expression,
+            TokenType.MT: self._parse_infix_expression,
+        }
     
     def _register_prefix_parse_fns(self) -> PrefixParseFns:
         return {
@@ -226,6 +302,8 @@ class Parser:
             TokenType.INT: self._parse_integer,
             TokenType.MINUS: self._parse_prefix_expression,
             TokenType.NOT: self._parse_prefix_expression,
+            TokenType.TRUE: self._parse_boolean,
+            TokenType.FALSE: self._parse_boolean,
         }
 
     

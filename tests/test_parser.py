@@ -8,7 +8,8 @@ from lpp.ast import (
     Identifier,
     Integer,
     Prefix,
-    Infix
+    Infix,
+    Boolean
 )
 from lpp.lexer import Lexer
 from lpp.parser import Parser
@@ -135,6 +136,8 @@ class ParserTest(TestCase):
             self._test_identifier(expression, expected_value)
         elif value_type == int:
             self._test_integer(expression, expected_value)
+        elif value_type == bool:
+            self._test_boolean(expression, expected_value)
         else:
             self.fail(f'Tipo de expresión no controlada. Obtuvo={value_type}')
 
@@ -178,6 +181,15 @@ class ParserTest(TestCase):
         self.assertEquals(integer.value, expected_value)
         self.assertEquals(integer.token.literal, str(expected_value))
 
+    def _test_boolean(self,
+                      expression: Expression,
+                      expected_value: Boolean) -> None:
+        self.assertIsInstance(expression, Boolean)
+
+        boolean = cast(Boolean, expression)
+        self.assertEquals(boolean.value, expected_value)
+        self.assertEquals(boolean.token.literal, 'verdadero' if expected_value else 'falso')
+        
     '''
     Operadores de prefijo:
     -5;
@@ -225,7 +237,6 @@ class ParserTest(TestCase):
     5 == 5;
     5 != 5;
     '''
-
     def test_infix_expressions(self) -> None:
         source: str='''
             5 + 5;
@@ -242,8 +253,6 @@ class ParserTest(TestCase):
         parser: Parser = Parser(lexer)
 
         program: Program = parser.parse_program()
-
-        self._test_program_statements(parser, program)
 
         self._test_program_statements(parser, program, expected_statement_count=8)
 
@@ -283,6 +292,30 @@ class ParserTest(TestCase):
         assert infix.right is not None
         self._test_literal_expression(infix.right, expected_right)
 
+    '''
+    Booleanos
+
+    verdadero;
+    falso;
+    variable foo = verdadero;
+    variable bar = falso;
+    '''
     
+    def test_boolean_expression(self) -> None:
+        source: str='verdadero; falso;'
         
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        self._test_program_statements(parser, program, expected_statement_count=2) # True False
+        
+        expected_values: list[bool] = [True, False]
+
+        for statement, expected_value in zip(program.statements, expected_values):
+            expression_statement = cast(ExpressionStatement, statement)
+
+            assert expression_statement is not None
+            self._test_literal_expression(expression_statement.expression, expected_value)
     
