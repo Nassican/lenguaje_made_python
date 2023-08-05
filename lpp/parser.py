@@ -10,6 +10,8 @@ from lpp.ast import (
     Prefix,
     Infix,
     Boolean,
+    If,
+    Block
     )
 from lpp.lexer import Lexer
 from lpp.token import TokenType, Token
@@ -294,6 +296,61 @@ class Parser:
 
         return expression
     
+    def _parse_if(self) -> Optional[If]:
+        assert self._current_token is not None
+        if_expression = If(token=self._current_token)
+
+        # Comprobamos que el token esperado sea un ( despues del si
+        # en caso contrario habria un error de sintaxis
+        if not self._expected_token(TokenType.LPAREN):
+            return None
+        
+        self._advance_tokens()
+
+        if_expression.condition = self._parse_expression(Precedence.LOWEST)
+
+        # Comprobamos que se cerro el parentesis )
+        if not self._expected_token(TokenType.RPAREN):
+            return None
+        
+        if not self._expected_token(TokenType.LBRACE):
+            return None
+        
+        if_expression.consequence = self._parse_block()
+        # Hasta aqui funciona con una sola condicion
+
+        # Aqui funciona con el si_no
+        assert self._peek_token is not None
+        if self._peek_token.token_type == TokenType.ELSE:
+            self._advance_tokens()
+
+            if not self._expected_token(TokenType.LBRACE):
+                return None
+
+            if_expression.alternative = self._parse_block()
+
+        return if_expression
+    
+    def _parse_block(self) -> Block:
+        assert self._current_token is not None
+        block_statement = Block(token=self._current_token,
+                                statements=[])
+        
+        self._advance_tokens()
+
+        # Mientras el token siguiente no sea }
+        while not self._current_token.token_type == TokenType.RBRACE \
+                and not self._current_token.token_type == TokenType.EOF:
+            statement = self._parse_statement()
+
+            if statement:
+                block_statement.statements.append(statement)
+
+            self._advance_tokens()
+
+        return block_statement
+
+    
 
 
 
@@ -318,6 +375,8 @@ class Parser:
             TokenType.TRUE: self._parse_boolean,
             TokenType.FALSE: self._parse_boolean,
             TokenType.LPAREN: self._parse_grouped_expression,
+            TokenType.LBRACE: self._parse_if,
+            TokenType.IF: self._parse_if
         }
 
     

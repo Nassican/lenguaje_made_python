@@ -169,9 +169,40 @@ class Boolean(Expression):
     def __str__(self) -> str:
         return self.token_literal()
     
-class If(Expression):
-    pass
-
 class Block(Statement):
-    pass
+
+    def __init__(self,
+                 token: Token,
+                 statements: list[Statement]) -> None:
+        super().__init__(token)
+        self.statements = statements
+
+    def __str__(self) -> str:
+        # Nos genera una lista de statements conertidos a strings
+        out: list[str] = [str(statement) for statement in self.statements]
+        
+        # Concatenamos todo
+        return ''.join(out)
+
+class If(Expression):
+    def __init__(self,
+                 token: Token,
+                 condition: Optional[Expression] = None,
+                 consequence: Optional[Block] = None,
+                 alternative: Optional[Block] = None) -> None:
+        super().__init__(token)
+        self.condition = condition 
+        self.consequence = consequence
+        self.alternative = alternative
+              
+
+    def __str__(self) -> str:
+        out: str = f'si {str(self.condition)} {str(self.consequence)}'
+        # Si hay una alternativa lo concatenamos
+        if self.alternative:
+            out += f'si_no {str(self.alternative)}'
+
+        return ''.join(out)
+
+
 
