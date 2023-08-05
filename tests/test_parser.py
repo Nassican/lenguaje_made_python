@@ -13,7 +13,15 @@ from lpp.ast import (
 )
 from lpp.lexer import Lexer
 from lpp.parser import Parser
-from typing import cast
+from typing import (
+    cast, 
+    List, 
+    Dict, 
+    Tuple, 
+    Type, 
+    Any, 
+    Optional,
+    )
 
 # Para hacer los tests
 
@@ -123,14 +131,15 @@ class ParserTest(TestCase):
                                  expected_statement_count: int = 1) -> None:
         if parser.errors:
             print(parser.errors)
+
         self.assertEquals(len(parser.errors), 0)
         self.assertEquals(len(program.statements), expected_statement_count)
         self.assertIsInstance(program.statements[0], ExpressionStatement)
 
     def _test_literal_expression(self,
-                                 expression: Expression,
-                                 expected_value: any) -> None:
-        value_type: type = type(expected_value)
+                                expression: Optional[Expression],
+                                expected_value: Any) -> None:
+        value_type: Type = type(expected_value)
 
         if value_type == str:
             self._test_identifier(expression, expected_value)
@@ -142,7 +151,7 @@ class ParserTest(TestCase):
             self.fail(f'Tipo de expresión no controlada. Obtuvo={value_type}')
 
     def _test_identifier(self,
-                         expression: Expression,
+                         expression: Optional[Expression],
                          expected_value: str) -> None:
         self.assertIsInstance(expression, Identifier)
 
@@ -203,18 +212,18 @@ class ParserTest(TestCase):
     '''
 
     def test_prefix_expressions(self) -> None:
-        source: str = '!5; -15;'
+        source: str = '!5; -15; !verdadero'
         lexer: Lexer = Lexer(source)
         parser: Parser = Parser(lexer)
-
+        # TODO
         program: Program = parser.parse_program()
 
         self._test_program_statements(parser,
                                       program,
-                                      expected_statement_count=2)
+                                      expected_statement_count=3)
         
         for statement, (expected_operator, expected_value) in zip(
-            program.statements, [('!', 5), ('-', 15)]):
+            program.statements, [('!', 5), ('-', 15), ('!', True)]):
             statement = cast(ExpressionStatement, statement)
             self.assertIsInstance(statement.expression, Prefix)
 
@@ -247,6 +256,7 @@ class ParserTest(TestCase):
             5 < 5;
             5 == 5;
             5 != 5;
+            verdadero == verdadero;
         '''
         
         lexer: Lexer = Lexer(source)
@@ -254,9 +264,9 @@ class ParserTest(TestCase):
 
         program: Program = parser.parse_program()
 
-        self._test_program_statements(parser, program, expected_statement_count=8)
+        self._test_program_statements(parser, program, expected_statement_count=9)
 
-        expected_operators_and_values: list[tuple[any, str, any]] = [
+        expected_operators_and_values: list[tuple[Any, str, Any]] = [
             (5, '+', 5),
             (5, '-', 5),
             (5, '*', 5),
@@ -265,6 +275,7 @@ class ParserTest(TestCase):
             (5, '<', 5),
             (5, '==', 5),
             (5, '!=', 5),
+            (True, '==', True),
         ]
 
         for statement, (expected_left, expected_operator, expected_right) in zip(
@@ -281,9 +292,9 @@ class ParserTest(TestCase):
     def _test_infix_expression(
             self,
             expression: Expression,
-            expected_left: any,
+            expected_left: Any,
             expected_operator: str,
-            expected_right: any):
+            expected_right: Any):
         infix = cast(Infix, expression)
 
         assert infix.left is not None
@@ -319,3 +330,74 @@ class ParserTest(TestCase):
             assert expression_statement is not None
             self._test_literal_expression(expression_statement.expression, expected_value)
     
+    '''
+        1str: programa inicial, 
+        2str: Orden de precedencia dentro del programa
+        int: Cuantos statements se espera del programa
+    '''
+
+    def test_operator_precedence(self) -> None:
+        test_sources: list[tuple[str, str, int]] = [
+            ('-a * b;', '((-a) * b)', 1),
+            ('!-a;', '(!(-a))', 1),
+            ('a + b + c;', '((a + b) + c)', 1),
+            ('a + b - c;', '((a + b) - c)', 1),
+            ('a * b * c;', '((a * b) * c)', 1),
+            ('a + b / c;', '(a + (b / c))', 1),
+            ('a * b / c;', '((a * b) / c)', 1),
+            ('a + b * c + d / e - f;', '(((a + (b * c)) + (d / e)) - f)', 1),
+            ('5 > 4 == 3 < 4;', '((5 > 4) == (3 < 4))', 1),
+            ('3 - 4 * 5 == 3 * 1 + 4 * 5;', '((3 - (4 * 5)) == ((3 * 1) + (4 * 5)))', 1),
+            ('3 + 4; -5 * 5;', '(3 + 4)((-5) * 5)', 2),
+            ('verdadero;', 'verdadero', 1),
+            ('falso;', 'falso', 1),
+            ('3 > 5 == verdadero;', '((3 > 5) == verdadero)', 1),
+            ('3 < 5 == falso;', '((3 < 5) == falso)', 1),
+            ('1 + (2 + 3) + 4;', '((1 + (2 + 3)) + 4)', 1),
+            ('(5 + 5) * 2;', '((5 + 5) * 2)', 1),
+            ('2 / (5 + 5);', '(2 / (5 + 5))', 1),
+            ('-(5 + 5);', '(-(5 + 5))', 1),
+        ]
+
+        for source, expected_result, expected_statement_count in test_sources:
+            lexer: Lexer = Lexer(source)
+            parser: Parser = Parser(lexer)
+
+            program: Program = parser.parse_program()
+
+            self._test_program_statements(parser, program, expected_statement_count)
+            self.assertEquals(str(program), expected_result)
+
+    ''' 
+
+        CICLO IF
+        --------------------
+
+        si (x > y) {
+            retorna x;
+        } si_no {
+            retorna y;
+        }
+
+        --------------------
+
+        si (x > y) {
+            regresa x;
+        }
+
+        --------------------
+
+        variable foo = si (x > y) { x } si_no { y }
+
+        --------------------
+
+        si (<condicion>) <consecuencia> si_no <alternativa>
+
+        --------------------
+    '''
+
+    def test_if_expression(self) -> None:
+        pass
+
+    def test_if_else_expression(self) -> None:
+        pass

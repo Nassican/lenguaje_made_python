@@ -84,11 +84,9 @@ class Parser:
         program: Program = Program(statements=[])
 
         assert self._current_token is not None
-
         while self._current_token.token_type != TokenType.EOF:
             statement = self._parse_statement()
             if statement is not None:
-                # Se agrega statemente por statement al program
                 program.statements.append(statement)
 
             self._advance_tokens()
@@ -108,6 +106,7 @@ class Parser:
             return PRECEDENCES[self._current_token.token_type]
         except KeyError:
             return Precedence.LOWEST
+
     
     # Comienza a identificar si la sintaxis es correcta
     def _expected_token(self, token_type: TokenType) -> bool:
@@ -123,9 +122,9 @@ class Parser:
     
     def _expected_token_error(self, token_type: TokenType) -> None:
         assert self._peek_token is not None
-        error = f'Se esperaba que el siguiente token fuera {token_type} ' + \
-                f'pero se obtuvo {self._peek_token.token_type}'
-        
+        error = f'Se esperaba que el siguiente tokne fuera {token_type} ' + \
+            f'pero se obtuvo {self._peek_token.token_type}'
+
         self._errors.append(error)
 
     def _parse_expression(self, precedence: Precedence) -> Optional[Expression]:
@@ -202,13 +201,15 @@ class Parser:
 
     def _parse_return_statement(self) -> Optional[ReturnStatement]:
         assert self._current_token is not None
+        return_statement = ReturnStatement(token=self._current_token)
 
-        return_statement = ReturnStatement(token = self._current_token)
         self._advance_tokens()
 
-        # TODO Terminar cuando sepamos parsear expresiones
+        # TODO terminar cuando sepamos parsear expresiones
         while self._current_token.token_type != TokenType.SEMICOLON:
             self._advance_tokens()
+
+        return return_statement
 
         return return_statement
     
@@ -220,17 +221,17 @@ class Parser:
     
     def _parse_integer(self) -> Optional[Integer]:
         assert self._current_token is not None
-
         integer = Integer(token=self._current_token)
+
         try:
             integer.value = int(self._current_token.literal)
         except ValueError:
-            message = f'No se ha podido parsear {self._current_token.literal}  ' + \
-                        'como entero.'
+            message = f'No se ha podido parsear {self._current_token.literal} ' + \
+                'como entero.'
             self._errors.append(message)
 
             return None
-        
+
         return integer
     
 
@@ -243,7 +244,9 @@ class Parser:
         assert self._current_token is not None
         prefix_expression = Prefix(token=self._current_token,
                                    operator=self._current_token.literal)
+
         self._advance_tokens()
+
         prefix_expression.right = self._parse_expression(Precedence.PREFIX)
 
         return prefix_expression
@@ -280,6 +283,16 @@ class Parser:
         return Boolean(token=self._current_token,
                        value=self._current_token.token_type == TokenType.TRUE)
 
+    # Funcion que agrupa las expressiones
+    def _parse_grouped_expression(self) -> Optional[Expression]:
+        self._advance_tokens()
+
+        expression = self._parse_expression(Precedence.LOWEST)
+
+        if not self._expected_token(TokenType.RPAREN):
+            return None
+
+        return expression
     
 
 
@@ -304,6 +317,7 @@ class Parser:
             TokenType.NOT: self._parse_prefix_expression,
             TokenType.TRUE: self._parse_boolean,
             TokenType.FALSE: self._parse_boolean,
+            TokenType.LPAREN: self._parse_grouped_expression,
         }
 
     

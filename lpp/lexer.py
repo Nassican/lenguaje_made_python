@@ -22,6 +22,8 @@ class Lexer:
             token = Token(TokenType.ASSIGN, self._character)
       elif match(r"^\+$", self._character):
           token = Token(TokenType.PLUS, self._character)
+      elif match(r"^$", self._character):
+          token = Token(TokenType.EOF, self._character)
       elif match(r"^\($", self._character):
           token = Token(TokenType.LPAREN, self._character)
       elif match(r"^\)$", self._character):
@@ -34,8 +36,6 @@ class Lexer:
           token = Token(TokenType.COMMA, self._character)
       elif match(r"^;$", self._character):
           token = Token(TokenType.SEMICOLON, self._character)
-      elif match(r"^$", self._character):
-          token = Token(TokenType.EOF, self._character)
       elif match(r"^<$", self._character):
           token = Token(TokenType.LT, self._character)
       elif match(r"^>$", self._character):
@@ -66,13 +66,13 @@ class Lexer:
       return token
 
     def _read_character(self) -> None:
-      if self._read_position >= len(self._source):
-        self._character = ''
-      else:
-        self._character = self._source[self._read_position]
+        if self._read_position >= len(self._source):
+            self._character = ''
+        else:
+            self._character = self._source[self._read_position]
 
-      self._position = self._read_position
-      self._read_position += 1
+        self._position = self._read_position
+        self._read_position += 1
 
     def _is_letter(self, character: str) -> bool:
       # Retorna si es letra
@@ -83,12 +83,15 @@ class Lexer:
       return bool(match(r'^\d$', character))  
     
     def _read_identifier(self) -> str:
-      initial_position = self._position
+        initial_position = self._position
 
-      while self._is_letter(self._character) or self._is_number(self._character): #Sigamos encontrando letras
-        self._read_character() # avanza 1 caracter
+        is_first_letter = True
+        while self._is_letter(self._character) or \
+                (not is_first_letter and self._is_number(self._character)):
+            self._read_character()
+            is_first_letter = False
 
-      return self._source[initial_position:self._position]
+        return self._source[initial_position:self._position]
     
     def _read_number(self) -> str:
       initial_position = self._position

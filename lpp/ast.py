@@ -86,7 +86,10 @@ class Identifier(Expression):
 
 
 class LetStatement(Statement):
-    def __init__(self, token: Token, name: Optional[Identifier] = None, value: Optional[Expression] = None) -> None:
+    def __init__(self, 
+                 token: Token, 
+                 name: Optional[Identifier] = None, 
+                 value: Optional[Expression] = None) -> None:
         # Estamos extendiendo Statement
         super().__init__(token)
         self.name = name
@@ -132,7 +135,7 @@ class Integer(Expression):
 class Prefix(Expression):
     def __init__(self,
                  token: Token,
-                 operator: Optional[str],
+                 operator: str,
                  right: Optional[Expression] = None) -> None:
         super().__init__(token)
         self.operator = operator
@@ -142,6 +145,7 @@ class Prefix(Expression):
         return f'({self.operator}{str(self.right)})'
     
 class Infix(Expression):
+
     def __init__(self,
                  token: Token,
                  left: Expression,
@@ -153,7 +157,7 @@ class Infix(Expression):
         self.right = right
 
     def __str__(self) -> str:
-        return f'({str(self.left)}{self.operator}{str(self.right)})'
+        return f'({str(self.left)} {self.operator} {str(self.right)})'
     
 class Boolean(Expression):
     def __init__(self,
@@ -164,4 +168,10 @@ class Boolean(Expression):
 
     def __str__(self) -> str:
         return self.token_literal()
+    
+class If(Expression):
+    pass
+
+class Block(Statement):
+    pass
 
