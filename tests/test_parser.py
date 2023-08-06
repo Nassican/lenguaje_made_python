@@ -11,7 +11,8 @@ from lpp.ast import (
     Infix,
     Boolean,
     If,
-    Block
+    Block,
+    Function
 ) 
 from lpp.lexer import Lexer
 from lpp.parser import Parser
@@ -469,3 +470,73 @@ class ParserTest(TestCase):
         alternative_statement = cast(ExpressionStatement, if_expression.alternative.statements[0])
         assert alternative_statement.expression is not None
         self._test_identifier(alternative_statement.expression, 'y')
+
+
+        '''
+        ###### FUNCIONES ######
+
+        procedimiento (x, y) {
+            regresa x + y;
+        }
+
+        procedimiento () { regresa verdadero }
+
+        mi_func(x, y, procedimiento(x, y) { regresa x != y} )
+
+        procedimiento <paramteros> <bloque>
+
+        <parametros> = (<param_1>, <param_2>, <param_3>, ...)
+        '''
+
+    def test_function_literal(self) -> None:
+        source: str = 'funcion(x, y) {x + y}'
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        self._test_program_statements(parser, program)
+
+        # Probramos que tengamo el nodo correcto (FUNCION)
+
+        function_literal = cast(Function, cast(ExpressionStatement,
+                                               program.statements[0]).expression)
+        
+        self.assertIsInstance(function_literal, Function)
+
+        # Probamos que los parametros sean 2
+        self.assertEquals(len(function_literal.parameters), 2)
+        self._test_literal_expression(function_literal.parameters[0], 'x')
+        self._test_literal_expression(function_literal.parameters[1], 'y')
+
+        # Probamos el bloque (cuerpo) (no siempre lo tiene)
+        assert function_literal.body is not None
+        self.assertEquals(len(function_literal.body.statements), 1) # -> Un statement 'x + y'
+
+        body = cast(ExpressionStatement, function_literal.body.statements[0])
+        assert body.expression is not None
+        self._test_infix_expression(body.expression, 'x', '+', 'y')
+
+    def test_function_parameters(self) -> None:
+        tests = [
+            {'input': 'funcion() {};',
+             'expected_params': []},
+            {'input': 'funcion(x) {};',
+             'expected_params': ['x']},
+            {'input': 'funcion(x, y, z) {};',
+             'expected_params': ['x', 'y', 'z']}
+        ]
+
+        for test in tests:
+            lexer: Lexer = Lexer(test['input']) # type: ignore
+            parser: Parser = Parser(lexer)
+
+            program: Program = parser.parse_program()
+
+            function = cast(Function, cast(ExpressionStatement,
+                                           program.statements[0]).expression)
+
+            self.assertEquals(len(function.parameters), len(test['expected_params']))
+
+            for idx, param in enumerate(test['expected_params']):
+                self._test_literal_expression(function.parameters[idx], param)

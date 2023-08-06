@@ -11,7 +11,8 @@ from lpp.ast import (
     Infix,
     Boolean,
     If,
-    Block
+    Block,
+    Function
     )
 from lpp.lexer import Lexer
 from lpp.token import TokenType, Token
@@ -124,7 +125,7 @@ class Parser:
     
     def _expected_token_error(self, token_type: TokenType) -> None:
         assert self._peek_token is not None
-        error = f'Se esperaba que el siguiente tokne fuera {token_type} ' + \
+        error = f'Se esperaba que el siguiente token fuera {token_type} ' + \
             f'pero se obtuvo {self._peek_token.token_type}'
 
         self._errors.append(error)
@@ -329,8 +330,11 @@ class Parser:
 
             if_expression.alternative = self._parse_block()
 
-        return if_expression
+        return if_expression    
+
+
     
+
     def _parse_block(self) -> Block:
         assert self._current_token is not None
         block_statement = Block(token=self._current_token,
@@ -350,9 +354,59 @@ class Parser:
 
         return block_statement
 
-    
+    # -----------------------------
+    # Ligamos tokens con funciones
+    # -----------------------------
+
+    def _parse_function(self) -> Optional[Function]:
+        assert self._current_token is not None
+        function = Function(token=self._current_token)
+
+        if not self._expected_token(TokenType.LPAREN):
+            return None
+        
+        function.parameters = self._parse_function_parameters()
+
+        if not self._expected_token(TokenType.LBRACE):
+            return None
+        
+        function.body = self._parse_block()
+
+        return function
 
 
+
+    def _parse_function_parameters(self) -> list[Identifier]:
+        params: list[Identifier] = []
+
+        assert self._peek_token is not None
+
+        if self._peek_token.token_type == TokenType.RPAREN:
+            self._advance_tokens()
+
+            return params
+        
+        self._advance_tokens()
+
+        
+        assert self._current_token is not None
+
+        identifier = Identifier(token=self._current_token,
+                                value=self._current_token.literal)
+        params.append(identifier)
+
+        while self._peek_token.token_type == TokenType.COMMA:
+            self._advance_tokens() # Avanzamos la comma
+            self._advance_tokens() # Avanzamos al siguiente identificador
+
+            identifier = Identifier(token=self._current_token,
+                                    value=self._current_token.literal)
+            params.append(identifier)
+
+        if not self._expected_token(TokenType.RPAREN):
+            return []
+        
+        return params
 
     def _register_infix_parse_fns(self) -> InfixParseFns:
         return {
@@ -376,7 +430,8 @@ class Parser:
             TokenType.FALSE: self._parse_boolean,
             TokenType.LPAREN: self._parse_grouped_expression,
             TokenType.LBRACE: self._parse_if,
-            TokenType.IF: self._parse_if
+            TokenType.IF: self._parse_if,
+            TokenType.FUNCTION: self._parse_function,
         }
 
     

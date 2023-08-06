@@ -203,6 +203,22 @@ class If(Expression):
             out += f'si_no {str(self.alternative)}'
 
         return ''.join(out)
+    
+class Function(Expression):
+    def __init__(self, 
+                 token: Token,
+                 parameters: list[Identifier] = [],
+                 body: Optional[Block] = None) -> None:
+        super().__init__(token)
+        self.parameters = parameters
+        self.body = body
+
+    def __str__(self) -> str:
+        param_list: list[str] = [str(parameter) for parameter in self.parameters]
+
+        params: str = ', '.join(param_list)
+
+        return f'{self.token_literal()}({params}) {str(self.body)}'
 
 
 
