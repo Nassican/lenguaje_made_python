@@ -219,6 +219,22 @@ class Function(Expression):
         params: str = ', '.join(param_list)
 
         return f'{self.token_literal()}({params}) {str(self.body)}'
+    
+class Call(Expression):
+    def __init__(self,
+                 token: Token,
+                 function: Expression,
+                 arguments: Optional[list[Expression]] = None) -> None:
+        super().__init__(token)
+        self.function = function
+        self.arguments = arguments
+
+    def __str__(self) -> str:
+        assert self.arguments is not None
+        # Transformamos cada argumento a str y se vuelve una lista de str
+        arg_list: list[str] = [str(argument) for argument in self.arguments]
+        args: str = ', '.join(arg_list)
+        return f'{str(self.function)}({args})'
 
 
 

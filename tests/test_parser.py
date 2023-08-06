@@ -12,7 +12,8 @@ from lpp.ast import (
     Boolean,
     If,
     Block,
-    Function
+    Function,
+    Call
 ) 
 from lpp.lexer import Lexer
 from lpp.parser import Parser
@@ -360,6 +361,11 @@ class ParserTest(TestCase):
             ('(5 + 5) * 2;', '((5 + 5) * 2)', 1),
             ('2 / (5 + 5);', '(2 / (5 + 5))', 1),
             ('-(5 + 5);', '(-(5 + 5))', 1),
+            # LLAMADAS A FUNCIONES
+            ('a + suma(b * c) + d;', '((a + suma(b * c))) + d)', 1),
+            ('suma(a, b, 1, 2 * 3, 4 + 5, suma(6, 7 * 8));',
+             'suma(a, b, 1, (2 * 3), (4 + 5), suma(6, (7 * 8)))', 1),
+            ('suma(a + b + c * d / f + g);', 'suma((((a + b) + ((c * d) / f)) + g))', 1),
         ]
 
         for source, expected_result, expected_statement_count in test_sources:
@@ -431,10 +437,6 @@ class ParserTest(TestCase):
         # Comprobamos la alternativa
         # Nos aseguramos que sea None, que no existe alternativa (Sino)
         self.assertIsNone(if_expression.alternative)
-
-        
-
-
 
     def test_if_else_expression(self) -> None:
         source: str = 'si (x != y) { x } si_no { y }'
@@ -540,3 +542,47 @@ class ParserTest(TestCase):
 
             for idx, param in enumerate(test['expected_params']):
                 self._test_literal_expression(function.parameters[idx], param)
+
+    '''
+    Llamada de funciones:
+
+    suma(2, 3);
+    suma(2 + 2, 5 * 4 * 3)
+
+    funcion(x, y) { x + y }(2, 3);
+    mapea([1, 2, 3], funcion(x) { 2 * x} )
+
+    <expresion>(<expresion_1>, <expresion_2>, ...)
+
+    la llamada puede ser un infix por el parentesis
+
+    '''
+
+    def test_call_expression(self) -> None:
+        source: str = 'suma(1, 2 * 3, 4 + 5);'
+        lexer: Lexer = Lexer(source)
+        parser: Parser = Parser(lexer)
+
+        program: Program = parser.parse_program()
+
+        self._test_program_statements(parser, program)
+
+        # Call es un nodo, el nodo de llamada
+
+        call = cast(Call, cast(ExpressionStatement,
+                               program.statements[0]).expression)
+        
+        
+        self.assertIsInstance(call, Call)
+        self._test_identifier(call.function, 'suma')
+
+        # Testeamos los argumentos
+        assert call.arguments is not None
+        self.assertEquals(len(call.arguments), 3)
+        # Vamos comprobando cada argumento
+        self._test_literal_expression(call.arguments[0], 1)
+        self._test_literal_expression(call.arguments[1], 2, '*', 3)
+        self._test_literal_expression(call.arguments[2], 4, '+', 5)
+        
+
+    
