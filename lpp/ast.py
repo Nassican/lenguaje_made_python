@@ -197,7 +197,7 @@ class If(Expression):
               
 
     def __str__(self) -> str:
-        out: str = f'si {str(self.condition)} {str(self.consequence)}'
+        out: str = f'si {str(self.condition)} {str(self.consequence)} '
         # Si hay una alternativa lo concatenamos
         if self.alternative:
             out += f'si_no {str(self.alternative)}'

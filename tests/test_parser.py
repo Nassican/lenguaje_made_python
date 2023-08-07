@@ -362,7 +362,7 @@ class ParserTest(TestCase):
             ('2 / (5 + 5);', '(2 / (5 + 5))', 1),
             ('-(5 + 5);', '(-(5 + 5))', 1),
             # LLAMADAS A FUNCIONES
-            ('a + suma(b * c) + d;', '((a + suma(b * c))) + d)', 1),
+            ('a + suma(b * c) + d;', '((a + suma((b * c))) + d)', 1),
             ('suma(a, b, 1, 2 * 3, 4 + 5, suma(6, 7 * 8));',
              'suma(a, b, 1, (2 * 3), (4 + 5), suma(6, (7 * 8)))', 1),
             ('suma(a + b + c * d / f + g);', 'suma((((a + b) + ((c * d) / f)) + g))', 1),
@@ -474,21 +474,21 @@ class ParserTest(TestCase):
         self._test_identifier(alternative_statement.expression, 'y')
 
 
-        '''
-        ###### FUNCIONES ######
+    '''
+    ###### FUNCIONES ######
 
-        procedimiento (x, y) {
-            regresa x + y;
-        }
+    procedimiento (x, y) {
+        regresa x + y;
+    }
 
-        procedimiento () { regresa verdadero }
+    procedimiento () { regresa verdadero }
 
-        mi_func(x, y, procedimiento(x, y) { regresa x != y} )
+    mi_func(x, y, procedimiento(x, y) { regresa x != y} )
 
-        procedimiento <paramteros> <bloque>
+    procedimiento <paramteros> <bloque>
 
-        <parametros> = (<param_1>, <param_2>, <param_3>, ...)
-        '''
+    <parametros> = (<param_1>, <param_2>, <param_3>, ...)
+    '''
 
     def test_function_literal(self) -> None:
         source: str = 'funcion(x, y) {x + y}'
@@ -581,8 +581,8 @@ class ParserTest(TestCase):
         self.assertEquals(len(call.arguments), 3)
         # Vamos comprobando cada argumento
         self._test_literal_expression(call.arguments[0], 1)
-        self._test_literal_expression(call.arguments[1], 2, '*', 3)
-        self._test_literal_expression(call.arguments[2], 4, '+', 5)
+        self._test_infix_expression(call.arguments[1], 2, '*', 3)
+        self._test_infix_expression(call.arguments[2], 4, '+', 5)
         
 
     
